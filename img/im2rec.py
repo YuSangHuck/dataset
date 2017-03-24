@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os
 import sys
-
+in_dataset_dir = r'~/ysh/git/dataset/'
 curr_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.join(curr_path, "../python"))
 import mxnet as mx
@@ -181,11 +181,11 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Create an image list or \
         make a record database by reading from an image list')
-    parser.add_argument('prefix', help='prefix of input/output lst and rec files.')
-    parser.add_argument('root', help='path to folder containing images.')
+    parser.add_argument('--prefix', default='dataset', help='prefix of input/output lst and rec files.')
+    parser.add_argument('--root', default=in_dataset_dir, help='path to folder containing images.')
 
     cgroup = parser.add_argument_group('Options for creating image lists')
-    cgroup.add_argument('--list', type=bool, default=False,
+    cgroup.add_argument('--list', type=bool, default=True,
                         help='If this is set im2rec will create image list(s) by traversing root folder\
         and output to <prefix>.lst.\
         Otherwise im2rec will read <prefix>.lst and create a database at <prefix>.rec')
@@ -196,7 +196,7 @@ def parse_args():
                         help='Ratio of images to use for training.')
     cgroup.add_argument('--test-ratio', type=float, default=0,
                         help='Ratio of images to use for testing.')
-    cgroup.add_argument('--recursive', type=bool, default=False,
+    cgroup.add_argument('--recursive', type=bool, default=True,
                         help='If true recursively walk through subdirs and assign an unique label\
         to images in each folder. Otherwise only include images in the root folder\
         and give them label 0.')
@@ -204,7 +204,7 @@ def parse_args():
         im2rec will randomize the image order in <prefix>.lst')
 
     rgroup = parser.add_argument_group('Options for creating database')
-    rgroup.add_argument('--pass-through', type=bool, default=False,
+    rgroup.add_argument('--pass-through', type=bool, default=True,
                         help='whether to skip transformation and save image as is')
     rgroup.add_argument('--resize', type=int, default=0,
                         help='resize the shorter edge of image to the newsize, original images will\
@@ -232,84 +232,63 @@ def parse_args():
     return args
 
 if __name__ == '__main__':
-#    print ('main start')
     args = parse_args()
-#    print(args.list)
-    if args.list:
-#        print('args.list {}'.format(args.list))
-        make_list(args)
+
+    make_list(args) # make dataset.lst file
+
+    if os.path.isdir(args.prefix):
+        working_dir = args.prefix
     else:
-#        print (args.prefix)
-        if os.path.isdir(args.prefix):
-            working_dir = args.prefix
-        else:
-            working_dir = os.path.dirname(args.prefix)
-#        print(working_dir)
-        files = [os.path.join(working_dir, fname) for fname in os.listdir(working_dir)
-                    if os.path.isfile(os.path.join(working_dir, fname))]
-#        print(files)
-        count = 0
-        for fname in files:
-#            print(fname.startswith(args.prefix),fname.endswith('.lst'))
-            if fname.startswith(args.prefix) and fname.endswith('.lst'):
-                print('Creating .rec file from', fname, 'in', working_dir)
-                count += 1
-                image_list = read_list(fname)
-#                print('count={},args.num_thread={},multiprocessing={}'.format(count,args.num_thread,multiprocessing))
-#                print(args.num_thread > 1 and multiprocessing is not None)
-                # -- write_record -- #
-                if args.num_thread > 1 and multiprocessing is not None:
-                    q_in = [multiprocessing.Queue(1024) for i in range(args.num_thread)]
-                    q_out = multiprocessing.Queue(1024)
-#                    print('beforR')
-                    read_process = [multiprocessing.Process(target=read_worker, args=(args, q_in[i], q_out)) \
-                                    for i in range(args.num_thread)]
-#                    print(read_process)
-#                    print('afterR')
-                    for p in read_process:
-                        p.start()
-#                    print('beforW')
-                    write_process = multiprocessing.Process(target=write_worker, args=(q_out, fname, working_dir))
-#                    print(write_process)
-#                    print('afterW')
-                    write_process.start()
+        working_dir = os.path.dirname(args.prefix)
+    files = [os.path.join(working_dir, fname) for fname in os.listdir(working_dir)
+                if os.path.isfile(os.path.join(working_dir, fname))]
+    count = 0
+    for fname in files:
+        if fname.startswith(args.prefix) and fname.endswith('.lst'):
+            print('Creating .rec file from', fname, 'in', working_dir)
+            count += 1
+            image_list = read_list(fname)
+            # -- write_record -- #
+            if args.num_thread > 1 and multiprocessing is not None:
+                q_in = [multiprocessing.Queue(1024) for i in range(args.num_thread)]
+                q_out = multiprocessing.Queue(1024)
+                read_process = [multiprocessing.Process(target=read_worker, args=(args, q_in[i], q_out)) \
+                                for i in range(args.num_thread)]
+                for p in read_process:
+                    p.start()
+                write_process = multiprocessing.Process(target=write_worker, args=(q_out, fname, working_dir))
+                write_process.start()
 
-                    for i, item in enumerate(image_list):
-                        q_in[i % len(q_in)].put((i, item))
-                    for q in q_in:
-                        q.put(None)
-                    for p in read_process:
-                        p.join()
+                for i, item in enumerate(image_list):
+                    q_in[i % len(q_in)].put((i, item))
+                for q in q_in:
+                    q.put(None)
+                for p in read_process:
+                    p.join()
 
-                    q_out.put(None)
-                    write_process.join()
-                else:
-                    print('multiprocessing not available, fall back to single threaded encoding')
-                    import Queue
-                    q_out = Queue.Queue()
-                    fname = os.path.basename(fname)
-                    fname_rec = os.path.splitext(fname)[0] + '.rec'
-                    fname_idx = os.path.splitext(fname)[0] + '.idx'
-                    record = mx.recordio.MXIndexedRecordIO(os.path.join(working_dir, fname_idx),
-                                                           os.path.join(working_dir, fname_rec), 'w')
-                    cnt = 0
-                    pre_time = time.time()
-                    for i, item in enumerate(image_list):
-#                        print('test3')
-#                        print('args={},i={},item={},q_out={}'.format(args,i,item,q_out))
-                        image_encode(args, i, item, q_out)
-#                        print('test4')
-                        if q_out.empty():
-                            continue
-#                        print('test5')
-                        _, s, _ = q_out.get()
-                        record.write_idx(item[0], s)
-#                        print('test6')
-                        if cnt % 1000 == 0:
-                            cur_time = time.time()
-                            print('time:', cur_time - pre_time, ' count:', cnt)
-                            pre_time = cur_time
-                        cnt += 1
-#                        print(cnt)
-        if not count:
-            print('Did not find and list file with prefix %s'%args.prefix)
+                q_out.put(None)
+                write_process.join()
+            else:
+                print('multiprocessing not available, fall back to single threaded encoding')
+                import Queue
+                q_out = Queue.Queue()
+                fname = os.path.basename(fname)
+                fname_rec = os.path.splitext(fname)[0] + '.rec'
+                fname_idx = os.path.splitext(fname)[0] + '.idx'
+                record = mx.recordio.MXIndexedRecordIO(os.path.join(working_dir, fname_idx),
+                                                        os.path.join(working_dir, fname_rec), 'w')
+                cnt = 0
+                pre_time = time.time()
+                for i, item in enumerate(image_list):
+                    image_encode(args, i, item, q_out)
+                    if q_out.empty():
+                        continue
+                    _, s, _ = q_out.get()
+                    record.write_idx(item[0], s)
+                    if cnt % 1000 == 0:
+                        cur_time = time.time()
+                        print('time:', cur_time - pre_time, ' count:', cnt)
+                        pre_time = cur_time
+                    cnt += 1
+    if not count:
+        print('Did not find and list file with prefix %s'%args.prefix)

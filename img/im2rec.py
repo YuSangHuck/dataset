@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os
 import sys
-in_dataset_dir = r'~/ysh/git/dataset/'
+in_dataset_dir = r'/root/ysh/git/dataset/img'
 curr_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.join(curr_path, "../python"))
 import mxnet as mx
@@ -104,7 +104,6 @@ def image_encode(args, i, item, q_out):
             print('pack_img error:', item[1], e)
             q_out.put((i, None, item))
         return
-
     try:
         img = cv2.imread(fullpath, args.color)
     except:
@@ -124,6 +123,7 @@ def image_encode(args, i, item, q_out):
             margin = (img.shape[1] - img.shape[0]) / 2;
             img = img[:, margin:margin + img.shape[0]]
     if args.resize:
+        print('resizing:{}'.format(args.resize))
         if img.shape[0] > img.shape[1]:
             newsize = (args.resize, img.shape[0] * args.resize / img.shape[1])
         else:
@@ -132,7 +132,9 @@ def image_encode(args, i, item, q_out):
 
     try:
         s = mx.recordio.pack_img(header, img, quality=args.quality, img_fmt=args.encoding)
+        print('train q_out.put')
         q_out.put((i, s, item))
+        print('success')
     except Exception, e:
         traceback.print_exc()
         print('pack_img error on file: %s' % fullpath, e)

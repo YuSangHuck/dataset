@@ -31,8 +31,10 @@ def list_image(root, recursive, exts):
                         cat[path] = len(cat)
                     yield (i, os.path.relpath(fpath, root), cat[path])
                     i += 1
-        for k, v in sorted(cat.items(), key=lambda x: x[1]):
-            print(os.path.relpath(k, root), v)
+        with open(curr_path+'/labels.txt','w') as labels:
+            for k, v in sorted(cat.items(), key=lambda x: x[1]):
+                labels.write(os.path.basename(os.path.relpath(k, root))+'\n')
+                #print(os.path.basename(os.path.relpath(k, root)))
     else:
         for fname in sorted(os.listdir(root)):
             fpath = os.path.join(root, fname)
@@ -94,6 +96,7 @@ def image_encode(args, i, item, q_out):
         header = mx.recordio.IRHeader(0, item[2], item[0], 0)
 
     if args.pass_through:
+#        print('pass_through:{}'.format(args.pass_through))
         try:
             with open(fullpath) as fin:
                 img = fin.read()
@@ -116,6 +119,7 @@ def image_encode(args, i, item, q_out):
         q_out.put((i, None, item))
         return
     if args.center_crop:
+        print('center_crop:{}'.format(args.center_crop))
         if img.shape[0] > img.shape[1]:
             margin = (img.shape[0] - img.shape[1]) / 2;
             img = img[margin:margin + img.shape[1], :]
@@ -123,7 +127,7 @@ def image_encode(args, i, item, q_out):
             margin = (img.shape[1] - img.shape[0]) / 2;
             img = img[:, margin:margin + img.shape[0]]
     if args.resize:
-        print('resizing:{}'.format(args.resize))
+        print('resize:{}'.format(args.resize))
         if img.shape[0] > img.shape[1]:
             newsize = (args.resize, img.shape[0] * args.resize / img.shape[1])
         else:
@@ -208,7 +212,12 @@ def parse_args():
     rgroup = parser.add_argument_group('Options for creating database')
     rgroup.add_argument('--pass-through', type=bool, default=True,
                         help='whether to skip transformation and save image as is')
-    rgroup.add_argument('--resize', type=int, default=0,
+#    rgroup.add_argument('--pass-through', type=bool, default=False,
+#                        help='whether to skip transformation and save image as is')
+#    rgroup.add_argument('--resize', type=int, default=0,
+#                        help='resize the shorter edge of image to the newsize, original images will\
+#        be packed by default.')
+    rgroup.add_argument('--resize', type=int, default=50,
                         help='resize the shorter edge of image to the newsize, original images will\
         be packed by default.')
     rgroup.add_argument('--center-crop', type=bool, default=False,
@@ -247,7 +256,7 @@ if __name__ == '__main__':
     count = 0
     for fname in files:
         if fname.startswith(args.prefix) and fname.endswith('.lst'):
-            print('Creating .rec file from', fname, 'in', working_dir)
+#            print('Creating .rec file from', fname, 'in', working_dir)
             count += 1
             image_list = read_list(fname)
             # -- write_record -- #
@@ -271,7 +280,7 @@ if __name__ == '__main__':
                 q_out.put(None)
                 write_process.join()
             else:
-                print('multiprocessing not available, fall back to single threaded encoding')
+#                print('multiprocessing not available, fall back to single threaded encoding')
                 import Queue
                 q_out = Queue.Queue()
                 fname = os.path.basename(fname)

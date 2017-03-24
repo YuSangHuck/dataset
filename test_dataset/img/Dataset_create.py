@@ -108,7 +108,7 @@ def image_encode(args, i, item, q_out):
             q_out.put((i, None, item))
         return
     try:
-        print('error point!')
+        print('Error point! Check cv2.imread')
         print('fulpath : ',fullpath)
         print('args.color : ',args.color)
         img = cv2.imread(fullpath, args.color)

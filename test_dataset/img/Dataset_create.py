@@ -1,6 +1,8 @@
 from __future__ import print_function
 import os
 import sys
+import logging
+
 in_dataset_dir = r'/root/ysh/git/dataset/img'
 curr_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.join(curr_path, "../python"))
@@ -214,10 +216,10 @@ def parse_args():
         im2rec will randomize the image order in <prefix>.lst')
 
     rgroup = parser.add_argument_group('Options for creating database')
-#    rgroup.add_argument('--pass-through', type=bool, default=True,
-#                        help='whether to skip transformation and save image as is')
-    rgroup.add_argument('--pass-through', type=bool, default=False,
+    rgroup.add_argument('--pass-through', type=bool, default=True,
                         help='whether to skip transformation and save image as is')
+#    rgroup.add_argument('--pass-through', type=bool, default=False,
+#                        help='whether to skip transformation and save image as is')
 #    rgroup.add_argument('--resize', type=int, default=0,
 #                        help='resize the shorter edge of image to the newsize, original images will\
 #        be packed by default.')
@@ -285,6 +287,16 @@ if __name__ == '__main__':
                 write_process.join()
             else:
 #                print('multiprocessing not available, fall back to single threaded encoding')
+                logger = logging.getLogger('single_process')
+                filehandler = logging.FileHandler('./create_train_db.log','w')
+                streamhandler = logging.StreamHandler()
+                formatter = logging.Formatter('[%(filename)s|%(asctime)s] %(message)s')
+                filehandler.setFormatter(formatter)
+                streamhandler.setFormatter(formatter)
+                logger.addHandler(filehandler)
+                logger.addHandler(streamhandler)
+                logger.setLevel(logging.DEBUG)
+				
                 import Queue
                 q_out = Queue.Queue()
                 fname = os.path.basename(fname)
@@ -302,7 +314,8 @@ if __name__ == '__main__':
                     record.write_idx(item[0], s)
                     if cnt % 1000 == 0:
                         cur_time = time.time()
-                        print('time:', cur_time - pre_time, ' count:', cnt)
+                        logger.info('time:{}, count:{}'.format(cur_time - pre_time, cnt))
+#                        print('time:', cur_time - pre_time, ' count:', cnt)
                         pre_time = cur_time
                     cnt += 1
     if not count:

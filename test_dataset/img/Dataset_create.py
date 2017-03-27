@@ -204,9 +204,9 @@ def parse_args():
     cgroup.add_argument('--exts', type=list, default=['.jpeg', '.jpg'],
                         help='list of acceptable image extensions.')
     cgroup.add_argument('--chunks', type=int, default=1, help='number of chunks.')
-    cgroup.add_argument('--train-ratio', type=float, default=1.0,
+    cgroup.add_argument('--train-ratio', type=float, default=0.9,
                         help='Ratio of images to use for training.')
-    cgroup.add_argument('--test-ratio', type=float, default=0,
+    cgroup.add_argument('--test-ratio', type=float, default=0.1,
                         help='Ratio of images to use for testing.')
     cgroup.add_argument('--recursive', type=bool, default=True,
                         help='If true recursively walk through subdirs and assign an unique label\
@@ -216,10 +216,10 @@ def parse_args():
         im2rec will randomize the image order in <prefix>.lst')
 
     rgroup = parser.add_argument_group('Options for creating database')
-    rgroup.add_argument('--pass-through', type=bool, default=True,
-                        help='whether to skip transformation and save image as is')
-#    rgroup.add_argument('--pass-through', type=bool, default=False,
+#    rgroup.add_argument('--pass-through', type=bool, default=True,
 #                        help='whether to skip transformation and save image as is')
+    rgroup.add_argument('--pass-through', type=bool, default=False,
+                        help='whether to skip transformation and save image as is')
 #    rgroup.add_argument('--resize', type=int, default=0,
 #                        help='resize the shorter edge of image to the newsize, original images will\
 #        be packed by default.')

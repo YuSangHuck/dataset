@@ -1,0 +1,2 @@
+channel=3
+size=32

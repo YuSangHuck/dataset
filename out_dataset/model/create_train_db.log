@@ -1,0 +1,13 @@
+[INFO:2017-06-01 05:29:27,169],Epoch[0] Batch [72]	Speed: 23456.66 samples/sec	Train-accuracy=0.233412
+[INFO:2017-06-01 05:29:27,169],Epoch[0] Train-accuracy=nan
+[INFO:2017-06-01 05:29:27,170],Epoch[0] Time cost=1.390
+[INFO:2017-06-01 05:29:27,183],Saved checkpoint to "/root/git/dataset/img/../out_dataset/model/lenet-0001.params"
+[INFO:2017-06-01 05:29:27,552],Epoch[1] Train-accuracy=0.337131
+[INFO:2017-06-01 05:29:27,552],Epoch[1] Time cost=0.369
+[INFO:2017-06-01 05:29:27,563],Saved checkpoint to "/root/git/dataset/img/../out_dataset/model/lenet-0002.params"
+[INFO:2017-06-01 05:29:27,929],Epoch[2] Train-accuracy=0.386827
+[INFO:2017-06-01 05:29:27,929],Epoch[2] Time cost=0.366
+[INFO:2017-06-01 05:29:27,942],Saved checkpoint to "/root/git/dataset/img/../out_dataset/model/lenet-0003.params"
+[INFO:2017-06-01 05:29:28,310],Epoch[3] Train-accuracy=0.432509
+[INFO:2017-06-01 05:29:28,310],Epoch[3] Time cost=0.368
+[INFO:2017-06-01 05:29:28,323],Saved checkpoint to "/root/git/dataset/img/../out_dataset/model/lenet-0004.params"
